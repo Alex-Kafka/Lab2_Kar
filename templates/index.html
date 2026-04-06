@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}Главная{% endblock %}
+
+{% block content %}
+<section class="hero-band">
+    <div class="container hero-layout">
+        <div class="hero-text">
+            <p class="eyebrow">PRINTMIX STUDIO</p>
+            <h1>Соберите футболку под свой стиль</h1>
+            <p>
+                Внутри каталога вы выбираете линейку. На карточке товара задаете цвет, размер
+                и вариант принта с живым предпросмотром.
+            </p>
+            <div class="hero-actions">
+                <a class="btn btn-main" href="{{ url_for('catalog') }}">Открыть каталог</a>
+                <a class="btn btn-soft" href="{{ url_for('cart') }}">Перейти в корзину</a>
+            </div>
+        </div>
+
+        <div class="hero-note">
+            <h3>Что умеет сервис</h3>
+            <ul>
+                <li>Актуальные остатки по каждой позиции</li>
+                <li>Совместимость футболки с принтами</li>
+                <li>Свой принт из файла</li>
+                <li>Чек в PDF формата A4 в браузере</li>
+            </ul>
+        </div>
+    </div>
+</section>
+
+<section class="section">
+    <div class="container">
+        <div class="section-title">
+            <h2>Популярные футболки</h2>
+            <a href="{{ url_for('catalog') }}">Показать все</a>
+        </div>
+        <div class="products">
+            {% for product in featured_products %}
+                <article class="tile">
+                    <img src="{{ url_for('static', filename=product.image_url) }}" alt="{{ product.model_name }}">
+                    <div class="tile-body">
+                        <h3>{{ product.model_name }}</h3>
+                        <p class="sub">Размеры: {{ product.sizes|join(', ') }}</p>
+                        <div class="row-between">
+                            <strong>от {{ "%.2f"|format(product.base_price) }} ₽</strong>
+                            <span class="stock {% if product.stock_qty <= 5 %}stock-low{% endif %}">
+                                Остаток: {{ product.stock_qty }}
+                            </span>
+                        </div>
+                        <a href="{{ url_for('product_detail', tshirt_id=product.tshirt_id) }}" class="btn btn-main full">
+                            Настроить
+                        </a>
+                    </div>
+                </article>
+            {% else %}
+                <p class="sub">Пока нет позиций.</p>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<section class="section section-alt">
+    <div class="container">
+        <div class="section-title">
+            <h2>Доступные принты</h2>
+        </div>
+        <div class="prints-grid">
+            {% for print in prints %}
+                <article class="print-tile">
+                    <img src="{{ url_for('static', filename=print.image_url) }}" alt="{{ print.print_name }}">
+                    <h3>{{ print.print_name }}</h3>
+                    <p>{{ print.description }}</p>
+                    <strong>+{{ "%.2f"|format(print.extra_price|float) }} ₽</strong>
+                </article>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endblock %}

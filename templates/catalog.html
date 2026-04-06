@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}Каталог{% endblock %}
+
+{% block content %}
+<section class="section">
+    <div class="container">
+        <div class="section-title">
+            <h1>Каталог</h1>
+        </div>
+
+        <form method="get" class="filters">
+            <label>
+                <span>Линейка</span>
+                <select name="model">
+                    <option value="">Все линейки</option>
+                    {% for model in models %}
+                        <option value="{{ model }}" {% if selected_model == model %}selected{% endif %}>{{ model }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+
+            <label>
+                <span>Цвет</span>
+                <select name="color">
+                    <option value="">Все цвета</option>
+                    {% for color in colors %}
+                        <option value="{{ color }}" {% if selected_color == color %}selected{% endif %}>{{ color }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+
+            <div class="filter-actions">
+                <button class="btn btn-main" type="submit">Применить</button>
+                <a class="btn btn-soft" href="{{ url_for('catalog') }}">Сбросить</a>
+            </div>
+        </form>
+
+        <div class="products">
+            {% for product in products %}
+                <article class="tile">
+                    <img src="{{ url_for('static', filename=product.image_url) }}" alt="{{ product.model_name }}">
+                    <div class="tile-body">
+                        <h3>{{ product.model_name }}</h3>
+                        <p class="sub">Размеры: {{ product.sizes|join(', ') }}</p>
+                        <div class="row-between">
+                            <strong>от {{ "%.2f"|format(product.base_price) }} ₽</strong>
+                            <span class="stock {% if product.stock_qty <= 5 %}stock-low{% endif %}">
+                                Остаток: {{ product.stock_qty }}
+                            </span>
+                        </div>
+                        <a href="{{ url_for('product_detail', tshirt_id=product.tshirt_id) }}" class="btn btn-main full">
+                            Выбрать размер и принт
+                        </a>
+                    </div>
+                </article>
+            {% else %}
+                <p class="sub">По фильтрам ничего не найдено.</p>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endblock %}

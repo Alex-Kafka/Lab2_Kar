@@ -1,0 +1,374 @@
+{% extends "base.html" %}
+
+{% block title %}{{ characteristic.model_name }}{% endblock %}
+
+{% block content %}
+<section class="section">
+    <div class="container product-layout">
+        <div class="product-preview">
+            <div class="preview-stage">
+                <img
+                    id="previewBase"
+                    class="preview-base"
+                    src="{{ url_for('static', filename=characteristic.image_url) }}"
+                    alt="{{ characteristic.model_name }}"
+                >
+                <img
+                    id="previewPrint"
+                    class="preview-print hidden"
+                    alt="Предпросмотр принта"
+                >
+            </div>
+            <p class="muted small">
+                Выберите цвет, размер и принт справа, чтобы посмотреть итоговый вид футболки.
+            </p>
+        </div>
+
+        <div class="product-config">
+            <p class="kicker" id="skuText">SKU {{ tshirt.sku }}</p>
+            <h1>{{ characteristic.model_name }}</h1>
+            <p class="muted" id="variantText">{{ characteristic.model_name }} · {{ characteristic.color_name }} · Размер {{ characteristic.size_name }}</p>
+            <p class="muted" id="stockText">На складе: {{ characteristic.stock_qty }}</p>
+
+            <div class="selector-block">
+                <p class="muted small">Цвет</p>
+                <div class="variant-grid">
+                    {% for color_name, color_hex in color_options %}
+                        <button
+                            type="button"
+                            class="variant-chip color-chip {% if current_variant and current_variant.color_name == color_name %}active{% endif %}"
+                            data-color="{{ color_name }}"
+                        >
+                            <span class="variant-dot" style="background: {{ color_hex }};"></span>
+                            <span>{{ color_name }}</span>
+                        </button>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="selector-block">
+                <p class="muted small">Размер</p>
+                <div class="size-grid">
+                    {% for size_name in size_options %}
+                        <button
+                            type="button"
+                            class="size-chip {% if current_variant and current_variant.size_name == size_name %}active{% endif %}"
+                            data-size="{{ size_name }}"
+                        >
+                            {{ size_name }}
+                        </button>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <form action="{{ url_for('add_to_cart') }}" method="post" enctype="multipart/form-data" id="productForm" class="config-form">
+                <input type="hidden" name="tshirt_id" id="tshirtIdInput" value="{{ tshirt.tshirt_id }}">
+
+                <div class="form-group">
+                    <label for="quantity">Количество</label>
+                    <input
+                        id="quantity"
+                        type="number"
+                        name="quantity"
+                        value="1"
+                        min="1"
+                        max="{{ characteristic.stock_qty }}"
+                        required
+                    >
+                </div>
+
+                <fieldset class="form-group">
+                    <legend>Тип принта</legend>
+                    <label class="radio-row">
+                        <input type="radio" name="print_mode" value="none" checked>
+                        <span>Без принта</span>
+                    </label>
+                    <label class="radio-row">
+                        <input type="radio" name="print_mode" value="ready">
+                        <span>Готовый принт</span>
+                    </label>
+                    <label class="radio-row">
+                        <input type="radio" name="print_mode" value="custom">
+                        <span>Свой файл (+300 ₽)</span>
+                    </label>
+                </fieldset>
+
+                <div class="form-group hidden" id="readyPrintBlock">
+                    <label for="printId">Выберите принт</label>
+                    <select id="printId" name="print_id">
+                        <option value="">Выберите</option>
+                        {% for print in prints %}
+                            <option
+                                value="{{ print.print_id }}"
+                                data-extra="{{ print.extra_price|float }}"
+                                data-image="{{ print.image_url }}"
+                            >
+                                {{ print.print_name }} (+{{ "%.2f"|format(print.extra_price|float) }} ₽)
+                            </option>
+                        {% endfor %}
+                    </select>
+                    <p class="muted small {% if prints %}hidden{% endif %}" id="readyPrintHint">
+                        Для выбранного цвета и размера нет совместимых принтов.
+                    </p>
+                </div>
+
+                <div class="form-group hidden" id="customPrintBlock">
+                    <label for="customPrint">Загрузите файл</label>
+                    <input id="customPrint" type="file" name="custom_print" accept=".png,.jpg,.jpeg,.gif">
+                    <p class="muted small">Поддерживаются PNG, JPG, JPEG, GIF</p>
+                </div>
+
+                <div class="total-box" id="basePrice" data-base="{{ characteristic.base_price|float }}">
+                    <span>Итоговая цена</span>
+                    <strong><span id="totalPrice">{{ "%.2f"|format(characteristic.base_price|float) }}</span> ₽</strong>
+                </div>
+
+                <div class="config-actions">
+                    <button type="submit" class="btn btn-primary">Добавить в корзину</button>
+                    <a href="{{ url_for('catalog') }}" class="btn btn-ghost">Назад в каталог</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+
+<script>
+(() => {
+    const form = document.getElementById('productForm');
+    const readyBlock = document.getElementById('readyPrintBlock');
+    const customBlock = document.getElementById('customPrintBlock');
+    const printSelect = document.getElementById('printId');
+    const customInput = document.getElementById('customPrint');
+    const qtyInput = document.getElementById('quantity');
+    const totalPriceEl = document.getElementById('totalPrice');
+    const basePriceEl = document.getElementById('basePrice');
+    const previewBase = document.getElementById('previewBase');
+    const previewPrint = document.getElementById('previewPrint');
+    const tshirtIdInput = document.getElementById('tshirtIdInput');
+    const skuText = document.getElementById('skuText');
+    const variantText = document.getElementById('variantText');
+    const stockText = document.getElementById('stockText');
+    const readyPrintHint = document.getElementById('readyPrintHint');
+
+    const colorButtons = Array.from(document.querySelectorAll('.color-chip'));
+    const sizeButtons = Array.from(document.querySelectorAll('.size-chip'));
+    const STATIC_BASE = {{ url_for('static', filename='')|tojson }};
+    const variantsPayload = {{ variants_payload|tojson }};
+
+    let selectedColor = {{ (current_variant.color_name if current_variant else '')|tojson }};
+    let selectedSize = {{ (current_variant.size_name if current_variant else '')|tojson }};
+    let activeCustomPreviewUrl = null;
+
+    function currentMode() {
+        const checked = form.querySelector('input[name="print_mode"]:checked');
+        return checked ? checked.value : 'none';
+    }
+
+    function clearCustomPreviewUrl() {
+        if (activeCustomPreviewUrl) {
+            URL.revokeObjectURL(activeCustomPreviewUrl);
+            activeCustomPreviewUrl = null;
+        }
+    }
+
+    function hidePreviewPrint() {
+        previewPrint.classList.add('hidden');
+        previewPrint.removeAttribute('src');
+    }
+
+    function showPreviewPrint(src) {
+        if (!src) {
+            hidePreviewPrint();
+            return;
+        }
+        previewPrint.src = src;
+        previewPrint.classList.remove('hidden');
+    }
+
+    function updatePreview() {
+        const mode = currentMode();
+
+        if (mode === 'ready' && printSelect.value) {
+            clearCustomPreviewUrl();
+            const selected = printSelect.selectedOptions[0];
+            const imagePath = selected ? selected.dataset.image : '';
+            if (imagePath) {
+                showPreviewPrint(STATIC_BASE + imagePath);
+                return;
+            }
+        }
+
+        if (mode === 'custom' && customInput.files && customInput.files.length > 0) {
+            clearCustomPreviewUrl();
+            activeCustomPreviewUrl = URL.createObjectURL(customInput.files[0]);
+            showPreviewPrint(activeCustomPreviewUrl);
+            return;
+        }
+
+        clearCustomPreviewUrl();
+        hidePreviewPrint();
+    }
+
+    function renderPrintOptions(variant, keepSelected = true) {
+        const previous = keepSelected ? printSelect.value : '';
+        const prints = variant.prints || [];
+
+        printSelect.innerHTML = '';
+        const defaultOption = document.createElement('option');
+        defaultOption.value = '';
+        defaultOption.textContent = 'Выберите';
+        printSelect.appendChild(defaultOption);
+
+        prints.forEach((printItem) => {
+            const option = document.createElement('option');
+            option.value = String(printItem.print_id);
+            option.dataset.extra = String(printItem.extra_price || 0);
+            option.dataset.image = printItem.image_url || '';
+            option.textContent = `${printItem.print_name} (+${Number(printItem.extra_price || 0).toFixed(2)} ₽)`;
+            printSelect.appendChild(option);
+        });
+
+        if (previous && prints.some((printItem) => String(printItem.print_id) === previous)) {
+            printSelect.value = previous;
+        }
+
+        if (readyPrintHint) {
+            readyPrintHint.classList.toggle('hidden', prints.length > 0);
+        }
+    }
+
+    function updateTotal() {
+        let price = Number(basePriceEl.dataset.base || 0);
+        const mode = currentMode();
+        const quantity = Math.max(1, Number(qtyInput.value || 1));
+
+        if (mode === 'ready' && printSelect.value) {
+            price += Number(printSelect.selectedOptions[0].dataset.extra || 0);
+        }
+        if (mode === 'custom' && customInput.files && customInput.files.length > 0) {
+            price += 300;
+        }
+
+        totalPriceEl.textContent = (price * quantity).toFixed(2);
+    }
+
+    function findVariant(colorName, sizeName) {
+        return variantsPayload.find(
+            (variant) => variant.color_name === colorName && variant.size_name === sizeName
+        );
+    }
+
+    function firstVariantByColor(colorName) {
+        return variantsPayload.find((variant) => variant.color_name === colorName);
+    }
+
+    function firstVariantBySize(sizeName) {
+        return variantsPayload.find((variant) => variant.size_name === sizeName);
+    }
+
+    function updateSizeAvailability() {
+        sizeButtons.forEach((button) => {
+            const sizeName = button.dataset.size;
+            const exists = Boolean(findVariant(selectedColor, sizeName));
+            button.disabled = !exists;
+            button.classList.toggle('disabled', !exists);
+        });
+    }
+
+    function syncSelectorStates() {
+        colorButtons.forEach((button) => {
+            button.classList.toggle('active', button.dataset.color === selectedColor);
+        });
+        sizeButtons.forEach((button) => {
+            button.classList.toggle('active', button.dataset.size === selectedSize);
+        });
+    }
+
+    function setCurrentVariant(variant) {
+        if (!variant) return;
+
+        selectedColor = variant.color_name;
+        selectedSize = variant.size_name;
+
+        tshirtIdInput.value = variant.tshirt_id;
+        previewBase.src = STATIC_BASE + variant.image_url;
+        skuText.textContent = `SKU ${variant.sku}`;
+        variantText.textContent = `${variant.model_name} · ${variant.color_name} · Размер ${variant.size_name}`;
+        stockText.textContent = `На складе: ${variant.stock_qty}`;
+        basePriceEl.dataset.base = String(variant.base_price || 0);
+
+        if (Number(qtyInput.value || 1) > Number(variant.stock_qty || 1)) {
+            qtyInput.value = String(Math.max(1, Number(variant.stock_qty || 1)));
+        }
+        qtyInput.max = String(Math.max(1, Number(variant.stock_qty || 1)));
+
+        updateSizeAvailability();
+        syncSelectorStates();
+        renderPrintOptions(variant, true);
+        updateTotal();
+        updatePreview();
+    }
+
+    function resolveAndSetVariant(nextColor, nextSize) {
+        let variant = findVariant(nextColor, nextSize);
+        if (!variant && nextColor) {
+            variant = firstVariantByColor(nextColor);
+        }
+        if (!variant && nextSize) {
+            variant = firstVariantBySize(nextSize);
+        }
+        if (!variant && variantsPayload.length > 0) {
+            variant = variantsPayload[0];
+        }
+        if (variant) {
+            setCurrentVariant(variant);
+        }
+    }
+
+    function updateBlocks() {
+        const mode = currentMode();
+        readyBlock.classList.toggle('hidden', mode !== 'ready');
+        customBlock.classList.toggle('hidden', mode !== 'custom');
+        printSelect.required = mode === 'ready';
+        customInput.required = mode === 'custom';
+
+        if (mode !== 'ready') {
+            printSelect.value = '';
+        }
+        if (mode !== 'custom') {
+            customInput.value = '';
+        }
+
+        updateTotal();
+        updatePreview();
+    }
+
+    colorButtons.forEach((button) => {
+        button.addEventListener('click', () => {
+            resolveAndSetVariant(button.dataset.color, selectedSize);
+        });
+    });
+
+    sizeButtons.forEach((button) => {
+        button.addEventListener('click', () => {
+            if (button.disabled) return;
+            resolveAndSetVariant(selectedColor, button.dataset.size);
+        });
+    });
+
+    form.addEventListener('change', updateBlocks);
+    form.addEventListener('input', updateTotal);
+    printSelect.addEventListener('change', () => {
+        updateTotal();
+        updatePreview();
+    });
+    customInput.addEventListener('change', () => {
+        updateTotal();
+        updatePreview();
+    });
+
+    resolveAndSetVariant(selectedColor, selectedSize);
+    updateBlocks();
+})();
+</script>
+{% endblock %}

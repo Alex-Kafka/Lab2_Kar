@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block title %}Корзина{% endblock %}
+
+{% block content %}
+<section class="section">
+    <div class="container">
+        <div class="section-title">
+            <h1>Корзина</h1>
+        </div>
+
+        {% if cart_items %}
+            <div class="cart-grid">
+                <div>
+                    {% for item in cart_items %}
+                        <article class="cart-row">
+                            <div class="cart-image">
+                                {% if item.custom_print_path %}
+                                    <img src="{{ url_for('static', filename='uploads/designs/' ~ item.custom_print_path) }}" alt="Ваш принт">
+                                {% else %}
+                                    <img src="{{ url_for('static', filename=item.image_url) }}" alt="{{ item.model_name }}">
+                                {% endif %}
+                            </div>
+
+                            <div class="cart-main">
+                                <h3>{{ item.model_name }}</h3>
+                                <p class="sub">{{ item.color_name }} · {{ item.size_name }}</p>
+                                <p class="sub">SKU: {{ item.sku }}</p>
+                                {% if item.print_name %}
+                                    <p>Принт: {{ item.print_name }} (+{{ "%.2f"|format(item.print_extra) }} ₽)</p>
+                                {% elif item.custom_print_path %}
+                                    <p>Принт: свой файл (+300.00 ₽)</p>
+                                {% else %}
+                                    <p>Принт: без принта</p>
+                                {% endif %}
+
+                                <div class="cart-actions">
+                                    <form action="{{ url_for('update_cart') }}" method="post" class="inline-tools">
+                                        <input type="hidden" name="cart_id" value="{{ item.cart_id }}">
+                                        <input type="number" name="quantity" value="{{ item.quantity }}" min="1" max="{{ item.stock_qty }}">
+                                        <button class="btn btn-soft" type="submit">Обновить</button>
+                                    </form>
+
+                                    <form action="{{ url_for('update_cart') }}" method="post" class="inline-tools">
+                                        <input type="hidden" name="cart_id" value="{{ item.cart_id }}">
+                                        <input type="hidden" name="action" value="remove">
+                                        <button class="btn btn-danger" type="submit">Удалить</button>
+                                    </form>
+                                </div>
+                            </div>
+
+                            <div class="cart-sum">
+                                <strong>{{ "%.2f"|format(item.subtotal) }} ₽</strong>
+                                <span>{{ item.quantity }} × {{ "%.2f"|format(item.unit_price) }} ₽</span>
+                            </div>
+                        </article>
+                    {% endfor %}
+                </div>
+
+                <aside class="summary">
+                    <h3>Сумма заказа</h3>
+                    <p class="sum">{{ "%.2f"|format(total) }} ₽</p>
+                    <a href="{{ url_for('download_cart_receipt') }}" class="btn btn-soft full" target="_blank">Открыть предварительный чек PDF</a>
+                    <a href="{{ url_for('checkout') }}" class="btn btn-main full">Перейти к оформлению</a>
+                    <a href="{{ url_for('catalog') }}" class="btn btn-soft full">Назад в каталог</a>
+                </aside>
+            </div>
+        {% else %}
+            <div class="empty-box">
+                <h3>Корзина пустая</h3>
+                <p class="sub">Добавьте футболки из каталога.</p>
+                <a href="{{ url_for('catalog') }}" class="btn btn-main">Перейти в каталог</a>
+            </div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

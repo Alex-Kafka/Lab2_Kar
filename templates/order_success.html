@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}Заказ создан{% endblock %}
+
+{% block content %}
+<section class="section">
+    <div class="container">
+        <div class="success-panel">
+            <p class="eyebrow">ГОТОВО</p>
+            <h1>Заказ успешно оформлен</h1>
+            <p>Номер заказа: <strong>{{ order.order_id }}</strong></p>
+            <p>Статус: <strong>{{ order.status }}</strong></p>
+            <p>Сумма: <strong>{{ "%.2f"|format(order.total_amount|float) }} ₽</strong></p>
+
+            <div class="hero-actions">
+                <a href="{{ url_for('download_receipt', order_id=order.order_id) }}" class="btn btn-main" target="_blank">
+                    Открыть чек PDF (A4)
+                </a>
+                <a href="{{ url_for('catalog') }}" class="btn btn-soft">
+                    Вернуться в каталог
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

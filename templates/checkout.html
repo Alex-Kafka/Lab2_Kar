@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}Оформление{% endblock %}
+
+{% block content %}
+<section class="section">
+    <div class="container checkout-grid">
+        <div class="panel">
+            <h1>Оформление заказа</h1>
+            <p class="sub">Введите контактные данные получателя и подтвердите заказ.</p>
+
+            <form method="post" class="checkout-form">
+                <label class="field">
+                    <span>Имя получателя *</span>
+                    <input id="client_name" type="text" name="client_name" required placeholder="Иван Петров">
+                </label>
+
+                <label class="field">
+                    <span>Телефон</span>
+                    <input id="client_phone" type="text" name="client_phone" placeholder="+7 900 000 00 00">
+                </label>
+
+                <label class="field">
+                    <span>Email</span>
+                    <input id="client_email" type="email" name="client_email" placeholder="mail@example.com">
+                </label>
+
+                <label class="field">
+                    <span>Комментарий</span>
+                    <textarea id="comment" name="comment" rows="4" placeholder="Комментарий к доставке"></textarea>
+                </label>
+
+                <button class="btn btn-main full" type="submit">Подтвердить заказ</button>
+            </form>
+        </div>
+
+        <aside class="summary">
+            <h3>Ваш заказ</h3>
+            {% for item in cart_items %}
+                <div class="summary-line">
+                    <strong>{{ item.model_name }} · {{ item.size_name }}</strong>
+                    <span>{{ "%.2f"|format(item.subtotal) }} ₽</span>
+                    <small>{{ item.quantity }} × {{ "%.2f"|format(item.unit_price) }} ₽</small>
+                </div>
+            {% endfor %}
+
+            <div class="summary-total">
+                <span>Итого</span>
+                <strong>{{ "%.2f"|format(total) }} ₽</strong>
+            </div>
+
+            <a href="{{ url_for('cart') }}" class="btn btn-soft full">Вернуться в корзину</a>
+        </aside>
+    </div>
+</section>
+{% endblock %}
