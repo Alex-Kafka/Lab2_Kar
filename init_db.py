@@ -155,7 +155,8 @@ def init_database():
                         db.session.add(tshirt)
                         db.session.flush()
 
-                        stock_qty = 45 + ((tshirt.tshirt_id * 3) % 20)
+                        # Оптовый диапазон складских остатков: 400-6000
+                        stock_qty = 400 + ((tshirt.tshirt_id * 137) % 5601)
                         characteristic = TShirtCharacteristic(
                             tshirt_id=tshirt.tshirt_id,
                             model_name=model_name,

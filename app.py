@@ -713,11 +713,11 @@ def _build_receipt_pdf(order, line_items):
                 line['name'],
                 line['print_name'],
                 str(line['quantity']),
-                f"{line['unit_price']:.2f} ₽",
-                f"{line['item_total']:.2f} ₽",
+                f"{line['unit_price']:.2f}",
+                f"{line['item_total']:.2f}",
             ]
         )
-    table_data.append(['', '', '', '', 'Итого', f'{float(order.total_amount):.2f} ₽'])
+    table_data.append(['', '', '', '', 'Итого', f'{float(order.total_amount):.2f}'])
 
     table = Table(table_data, colWidths=[12 * mm, 70 * mm, 35 * mm, 22 * mm, 25 * mm, 30 * mm])
     table.setStyle(
