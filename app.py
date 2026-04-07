@@ -69,6 +69,18 @@ COLOR_HEX_MAP = {
     'Бордовый': '#7f2f45',
 }
 
+CYRILLIC_TO_LATIN_MAP = {
+    'А': 'A', 'а': 'a', 'Б': 'B', 'б': 'b', 'В': 'V', 'в': 'v', 'Г': 'G', 'г': 'g',
+    'Д': 'D', 'д': 'd', 'Е': 'E', 'е': 'e', 'Ё': 'E', 'ё': 'e', 'Ж': 'Zh', 'ж': 'zh',
+    'З': 'Z', 'з': 'z', 'И': 'I', 'и': 'i', 'Й': 'Y', 'й': 'y', 'К': 'K', 'к': 'k',
+    'Л': 'L', 'л': 'l', 'М': 'M', 'м': 'm', 'Н': 'N', 'н': 'n', 'О': 'O', 'о': 'o',
+    'П': 'P', 'п': 'p', 'Р': 'R', 'р': 'r', 'С': 'S', 'с': 's', 'Т': 'T', 'т': 't',
+    'У': 'U', 'у': 'u', 'Ф': 'F', 'ф': 'f', 'Х': 'Kh', 'х': 'kh', 'Ц': 'Ts', 'ц': 'ts',
+    'Ч': 'Ch', 'ч': 'ch', 'Ш': 'Sh', 'ш': 'sh', 'Щ': 'Sch', 'щ': 'sch', 'Ъ': '', 'ъ': '',
+    'Ы': 'Y', 'ы': 'y', 'Ь': '', 'ь': '', 'Э': 'E', 'э': 'e', 'Ю': 'Yu', 'ю': 'yu',
+    'Я': 'Ya', 'я': 'ya',
+}
+
 
 def allowed_file(filename):
     return (
@@ -110,6 +122,11 @@ def calculate_unit_price(characteristic, print_item, custom_print_path):
     if custom_print_path:
         total += Decimal('300.00')
     return total.quantize(Decimal('0.01'))
+
+
+def transliterate_text(value):
+    text = str(value or '')
+    return ''.join(CYRILLIC_TO_LATIN_MAP.get(char, char) for char in text)
 
 
 def build_cart_details():
@@ -698,26 +715,26 @@ def _build_receipt_pdf(order, line_items):
     )
 
     story = [
-        Paragraph('Чек заказа футболок', title_style),
-        Paragraph(f'Дата: {order.order_date.strftime("%d.%m.%Y %H:%M")}', normal_style),
-        Paragraph(f'Номер заказа: {order.order_id}', normal_style),
-        Paragraph(f'Клиент: {order.client_name}', normal_style),
+        Paragraph('Order Receipt', title_style),
+        Paragraph(f'Date: {order.order_date.strftime("%d.%m.%Y %H:%M")}', normal_style),
+        Paragraph(f'Order #: {order.order_id}', normal_style),
+        Paragraph(f'Client: {transliterate_text(order.client_name)}', normal_style),
         Spacer(1, 8 * mm),
     ]
 
-    table_data = [['№', 'Товар', 'Принт', 'Кол-во', 'Цена', 'Сумма']]
+    table_data = [['No', 'Product', 'Print', 'Qty', 'Price', 'Total']]
     for idx, line in enumerate(line_items, start=1):
         table_data.append(
             [
                 str(idx),
-                line['name'],
-                line['print_name'],
+                transliterate_text(line['name']),
+                transliterate_text(line['print_name']),
                 str(line['quantity']),
                 f"{line['unit_price']:.2f}",
                 f"{line['item_total']:.2f}",
             ]
         )
-    table_data.append(['', '', '', '', 'Итого', f'{float(order.total_amount):.2f}'])
+    table_data.append(['', '', '', '', 'Total', f'{float(order.total_amount):.2f}'])
 
     table = Table(table_data, colWidths=[12 * mm, 70 * mm, 35 * mm, 22 * mm, 25 * mm, 30 * mm])
     table.setStyle(
@@ -736,7 +753,7 @@ def _build_receipt_pdf(order, line_items):
     )
     story.append(table)
     story.append(Spacer(1, 8 * mm))
-    story.append(Paragraph('Спасибо за покупку.', normal_style))
+    story.append(Paragraph('Thank you for your order.', normal_style))
 
     doc.build(story)
     buffer.seek(0)
